@@ -76,7 +76,7 @@ class Bablic {
         $html_file = file_exists($filename);
         if ($html_file) {
             $html = readfile($filename);
-            return array("html"=>$html, "refresh_cache"=> true);
+            return array("html"=>$html);
         } else {
             return false;
         }
@@ -84,7 +84,7 @@ class Bablic {
 
 }
 
-$Bablic_Seo = new Bablic(array('site_id' => '56fa51a1fe353b8c4d8d4291'));
-$result = $Bablic_Seo->get_html_for_url('http://bablic.weebly.com/?locale=fr');
+$Bablic_Seo = new Bablic(array('site_id' => '[site id]'));
+$result = $Bablic_Seo->get_html_for_url('[url from your site]');
 echo "result is $result";
 ?>
