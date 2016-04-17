@@ -29,7 +29,7 @@ class Bablic {
     }
 
     public function send_to_bablic($url, $html,$save_flag) {
-        $curl = curl_init("http://dev.bablic.com/api/engine/seo?site=$this->site_id&url=$url");
+        $curl = curl_init("https://www.bablic.com/api/engine/seo?site=$this->site_id&url=$url");
         $content = json_encode(array('html'=> $html));
         curl_setopt($curl, CURLOPT_HEADER, false);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
