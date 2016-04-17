@@ -3,7 +3,7 @@
 /*
  * Plugin Name: Bablic_Seo_SDK
  * Plugin URI: https://www.bablic.com/docs#Bablic_Seo_SDK_PHP
- * Description: Integrates your site with Bablic localization cloud service.
+ * Description: Integrates your site with Bablic localization cloud service directly from your server to solve SEO issues.
  * Version: 0.1
  * Author: Erez Hochman
  * Author URI: https://www.bablic.com
