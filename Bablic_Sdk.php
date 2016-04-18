@@ -11,6 +11,9 @@
  * Copyright 2016 Bablic
  */
 
+$is_google_bot =  '/bot|crawler|baiduspider|80legs|mediapartners-google|adsbot-google/i';
+$is_ignorable = '/\.(js|css|jpg|jpeg|png|mp3|avi|mpeg|bmp|wav|pdf|doc|xml|docx|xlsx|xls|json|kml|svg|eot|woff|woff2)/';
+
 class Bablic {
     private $site_id = '';
     private $save_flag = true;
@@ -25,7 +28,7 @@ class Bablic {
     }
    
     private function is_bot() {
-        $is_bot =  ' /bot|crawler|baiduspider|facebookexternalhit|Twitterbot|80legs|mediapartners-google|adsbot-google/i ';
+        $is_bot =  '/bot|crawler|baiduspider|facebookexternalhit|Twitterbot|80legs|mediapartners-google|adsbot-google/i';
         if(preg_match($is_bot, $_SERVER['HTTP_USER_AGENT'], $matches))
             return true;
         return false;
