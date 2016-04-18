@@ -2,9 +2,9 @@
 
 /*
  * Plugin Name: Bablic_Seo_SDK
- * Plugin URI: https://www.bablic.com/docs#Bablic_Seo_SDK_PHP
+ * Plugin URI: https://github.com/Bablic/bablic-php/blob/master/Bablic_Sdk.php
  * Description: Integrates your site with Bablic localization cloud service directly from your server to solve SEO issues.
- * Version: 0.1
+ * Version: 0.2
  * Author: Erez Hochman
  * Author URI: https://www.bablic.com
  * License: GPLv3
@@ -13,11 +13,49 @@
 
 class Bablic {
     private $site_id = '';
+    private $save_flag = true;
+    private $done = false;
+    private $url = '';
 
     public function Bablic($options) {
         $this->site_id = $options['site_id'];
+        $this->url = $this->get_current_url();
+        $this->url = 'http://bablic.weebly.com/?locale=fr';
+        $this->get_html_for_url($this->url);
+    }
+   
+    private function is_bot() {
+        $is_bot =  ' /bot|crawler|baiduspider|facebookexternalhit|Twitterbot|80legs|mediapartners-google|adsbot-google/i ';
+        if(preg_match($is_bot, $_SERVER['HTTP_USER_AGENT'], $matches))
+            return true;
+        return false;
     }
 
+    private function get_current_url() {
+        $protocol = 'http';
+        if ($_SERVER['SERVER_PORT'] == 443 || (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on'))
+            $protocol .= 's';
+        return "$protocol://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
+    }
+
+    public function process_buffer($buffer) {
+        foreach (headers_list() as &$value) {
+            $html_found = 0;
+            $contenttype_found = 0;
+            $html_found = strpos($value, "text/html;");
+            $contenttype_found = strpos($value, "Content-Type");
+            if ($html_found === false){
+                // do nothing
+            }else {
+                break;
+            }
+        }
+        if (($html_found === false)&&($contenttype_found === 0)) return false;
+        $html = ob_get_contents();
+        $url = $this->url;
+        $response = $this->send_to_bablic($url, $html);
+        return $response;
+    }
     private function filename_from_url($url) {
         return md5($url);
     }
@@ -28,30 +66,28 @@ class Bablic {
         return "$tmp_dir/$filename";
     }
 
-    public function send_to_bablic($url, $html,$save_flag) {
-        $curl = curl_init("https://www.bablic.com/api/engine/seo?site=$this->site_id&url=$url");
+    private function send_to_bablic($url, $html) {
+        $bablic_url = "http://dev.bablic.com/api/engine/seo?site=$this->site_id&url=$url";
+        $curl = curl_init($bablic_url);
         $content = json_encode(array('html'=> $html));
+        curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 0);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, 0);
         curl_setopt($curl, CURLOPT_HEADER, false);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_HTTPHEADER, array("Content-type: application/json"));
         curl_setopt($curl, CURLOPT_POST, true);
         curl_setopt($curl, CURLOPT_POSTFIELDS, $content);
         
-        $json_response = curl_exec($curl);
-
+        $response = curl_exec($curl);
         $status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-
-        if ( $status != 200 ) {
+        if (($status != 200 ) && ($status != 301)) {
+            return $html;
             die("Error: curl_error " . curl_error($curl) . ", curl_errno " . curl_errno($curl));
         }
 
         curl_close($curl);
-        $response = json_decode($json_response);
-        
-        if ($save_flag === true) {
-            $this->save_html($json_response, $this->full_path_from_url($url));
-        }
-        return htmlspecialchars($json_response);
+        $this->save_html($response, $this->full_path_from_url($url));
+        return $response;
     }
 
     private function save_html($content, $filename) {
@@ -60,31 +96,31 @@ class Bablic {
         fclose($file);
     }
 
-    public function get_html_for_url($url) {
-        $res = null;
+    public function noop() {
+        return '';
+    }
+
+    public function get_html_for_url($url) {      
         $cached_file = $this->read_from_cache($this->full_path_from_url($url));
-        if ($cached_file != false){
-            $res = $cached_file['html'];
-        } else {
-            $res = $this->send_to_bablic(urlencode($url),'', true);
-        }
-        return $res;
+        if ($cached_file)
+            return ob_start(array(&$this, "noop"));
+        ob_start(array(&$this, "process_buffer"));
+        return ;
         
     }
 
     private function read_from_cache($filename) {
         $html_file = file_exists($filename);
         if ($html_file) {
-            $html = readfile($filename);
-            return array("html"=>$html);
+            $file_modified = filemtime($filename);
+            $now = round(microtime(true) * 1000);
+            $validity = ($now - (2*24*60*60*1000) > $file_modified);
+            if ($validity === false) return false;
+            readfile($filename);
+            return true;
         } else {
             return false;
         }
     }
-
 }
-
-$Bablic_Seo = new Bablic(array('site_id' => '[site id]'));
-$result = $Bablic_Seo->get_html_for_url('[url from your site]');
-echo "result is $result";
 ?>
