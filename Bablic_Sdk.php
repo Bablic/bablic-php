@@ -23,7 +23,6 @@ class Bablic {
     public function Bablic($options) {
         $this->site_id = $options['site_id'];
         $this->url = $this->get_current_url();
-        $this->url = 'http://bablic.weebly.com/?locale=fr';
         $this->get_html_for_url($this->url);
     }
    
