@@ -69,7 +69,7 @@ class Bablic {
     }
 
     private function send_to_bablic($url, $html) {
-        $bablic_url = "http://dev.bablic.com/api/engine/seo?site=$this->site_id&url=$url";
+        $bablic_url = "https://www.bablic.com/api/engine/seo?site=$this->site_id&url=".urlencode($url);
         $curl = curl_init($bablic_url);
         $content = json_encode(array('html'=> $html));
         curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 0);
