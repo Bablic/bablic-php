@@ -9,7 +9,7 @@ $bablic_server = new Bablic(
     array(
         'site_id'=> $site_id,
         'debug' => false, //optional
-        'nocache' => true, //optional
+        'nocache' => false, //optional
         'url' => 'http://some.url.com' //optional
     )
 );
