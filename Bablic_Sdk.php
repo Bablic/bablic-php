@@ -11,18 +11,22 @@
  * Copyright 2016 Bablic
  */
 
-$is_google_bot =  '/bot|crawler|baiduspider|80legs|mediapartners-google|adsbot-google/i';
-$is_ignorable = '/\.(js|css|jpg|jpeg|png|mp3|avi|mpeg|bmp|wav|pdf|doc|xml|docx|xlsx|xls|json|kml|svg|eot|woff|woff2)/';
-
 class Bablic {
     private $site_id = '';
     private $save_flag = true;
     private $done = false;
     private $url = '';
+    private $nocache = false;
 
     public function Bablic($options) {
+        if ($options['debug'] == true) $this->debug = true;
+        if ($options['nocache'] == true) $this->nocache = true;
+        if ($options['url'])
+            $this->url = $options['url'];
+        else
+            $this->url = $this->get_current_url();
         $this->site_id = $options['site_id'];
-        $this->url = $this->get_current_url();
+        if (($this->is_bot() == false) && ($options['debug'] == false)) return;
         $this->get_html_for_url($this->url);
     }
    
@@ -41,7 +45,8 @@ class Bablic {
     }
 
     public function process_buffer($buffer) {
-        foreach (headers_list() as &$value) {
+        $headers = headers_list();
+        foreach ($headers as &$value) {
             $html_found = 0;
             $contenttype_found = 0;
             $html_found = strpos($value, "text/html;");
@@ -71,14 +76,14 @@ class Bablic {
     private function send_to_bablic($url, $html) {
         $bablic_url = "https://www.bablic.com/api/engine/seo?site=$this->site_id&url=".urlencode($url);
         $curl = curl_init($bablic_url);
-        $content = json_encode(array('html'=> $html));
+
         curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 0);
         curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, 0);
         curl_setopt($curl, CURLOPT_HEADER, false);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($curl, CURLOPT_HTTPHEADER, array("Content-type: application/json"));
+        curl_setopt($curl, CURLOPT_HTTPHEADER, array("Content-type: text/html","Expect:"));
         curl_setopt($curl, CURLOPT_POST, true);
-        curl_setopt($curl, CURLOPT_POSTFIELDS, $content);
+        curl_setopt($curl, CURLOPT_POSTFIELDS, $html);
         
         $response = curl_exec($curl);
         $status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
@@ -112,6 +117,7 @@ class Bablic {
     }
 
     private function read_from_cache($filename) {
+        if ($this->nocache == true) return false;
         $html_file = file_exists($filename);
         if ($html_file) {
             $file_modified = filemtime($filename);
