@@ -1,35 +1,265 @@
 <?php
 
-/*
- * Plugin Name: Bablic_Seo_SDK
- * Plugin URI: https://github.com/Bablic/bablic-php/blob/master/Bablic_Sdk.php
- * Description: Integrates your site with Bablic localization cloud service directly from your server to solve SEO issues.
- * Version: 0.2
- * Author: Erez Hochman
- * Author URI: https://www.bablic.com
- * License: GPLv3
- * Copyright 2016 Bablic
- */
+class mock_store {
+    private $store = array();
 
-class Bablic {
+    public function get($key){
+        if (empty($this->store[$key]))
+            return '';
+        else
+            return $this->store[$key];
+    }
+
+    public function set($key, $value){
+        $this->store[$key] = $value;
+    }
+}
+
+class wp_store {
+    public function get($key){
+		return get_option($key);
+    }
+    public function set($key, $value){
+        update_option($key, $value);
+    }
+}
+
+class BablicSDK {
     private $site_id = '';
     private $save_flag = true;
     private $done = false;
     private $url = '';
     private $nocache = false;
+    private $access_token = '';
+    private $channel_id = '';
+    private $version = '';
+    private $meta = array();
 
-    public function Bablic($options) {
-        if ($options['debug'] == true) $this->debug = true;
-        if ($options['nocache'] == true) $this->nocache = true;
+    public function BablicSDK($options) {
+        if (empty($options['channel_id'])){
+            die('must provide channel_id');
+        }       
+        $this->channel_id = $options['channel_id'];
+        if ($this->channel_id === 'wp')
+            $this->store = new wp_store();
+        else
+            $this->store = new mock_store();
+        if ($this->store->get('site_id') != '') 
+            $this->get_data_from_store();
+    }
+
+    private function save_data_to_store(){
+        $this->store->set('meta', $this->meta);
+        $this->store->set('access_token', $this->access_token);
+        $this->store->set('version', $this->version);
+        $this->store->set('meta', $this->meta);
+        $this->store->set('snippet', $this->snippet);
+        $this->store->set('site_id', $this->site_id);
+    }
+
+    private function get_data_from_store() {
+       $this->site_id = $this->store->get('site_id');
+       $this->version = $this->store->get('version');
+       $this->meta = $this->store->get('meta');
+       $this->snippet = $this->store->get('snippet');
+       $this->access_token = $this->store->get('access_token');
+    }
+
+    public function create_site($options) {
+        $url = "http://www.bablic.com/api/v1/site?channel_id=$this->channel_id";
+        $url = "http://f70ddd07.ngrok.io/api/v1/site?channel_id=$this->channel_id";
+        $payload = array(
+            'url' => $options['site_url'],
+            'email'=> $options['email'],
+            'original' => $options['original_locale'],
+            'callback' => $options['callback'],
+        );
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+        curl_setopt($ch, CURLOPT_HEADER, false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array("Content-type: application/json","Expect:"));
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+        $result = curl_exec($ch);
+        $result = json_decode($result, true);
+        if (!empty($result['error'])) {
+            return array("error" => "Bablic returned error");
+        }
+        $this->access_token = $result['access_token'];
+        $this->site_id = $result['id'];
+        $this->snippet = $result['snippet'];
+        $this->version = $result['version'];
+        $this->meta = json_encode($result['meta']);
+        $this->save_data_to_store();
+    }
+
+    public function get_site_from_bablic() {
+        $url = "https://www.bablic.com/api/v1/site/$this->site_id?access_token=$this->access_token";
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        $result = curl_exec($ch);
+        $result = json_decode($result, true);
+        if (!empty($result['error'])) {
+            return array("error" => "Bablic returned error");
+        }
+        $this->access_token = $result['access_token'];
+        $this->site_id = $result['id'];
+        $this->snippet = $result['snippet'];
+        $this->version = $result['version'];
+        $this->meta = json_encode($result['meta']);
+        $this->save_data_to_store();
+    }
+
+    public function clear_cache(){
+        $tmp_dir = sys_get_temp_dir();
+		$folder = "$tmp_dir/bablic_cache";
+		if (!file_exists($folder)){
+			echo "not exists";
+			return;
+		} 
+        array_map('unlink', glob("$folder/*"));
+    }
+    
+    public function get_site(){
+        return array (
+            "meta" => $this->meta,
+            "site_id" => $this->site_id,
+            "version" => $this->version,
+            "snippet" => $this->snippet,
+        );
+    }
+
+    public function get_snippet() {
+        return $this->snippet;
+    }
+
+    private function get_all_headers() {
+        $headers = array();
+        foreach($_SERVER as $key => $value) {
+            if (substr($key, 0, 5) <> 'HTTP_') {
+                continue;
+            }
+            $header = str_replace(' ', '-', ucwords(str_replace('_', ' ', strtolower(substr($key, 5)))));
+            $headers[$header] = $value;
+        }
+        return $headers;
+    }
+
+    public function detect_locale_from_header() {
+        $headers = $this->get_all_headers();
+        $lang = explode(',', $headers['Accept-Language']);
+        if (!empty($lang)) return $lang[0];
+        return false;
+    }
+
+    public function detect_locale_from_cookie($allowed_keys) {
+        if (!empty($_COOKIE['bab_locale']) && !empty($allowed_keys)){
+            $cookie_locale = $_COOKIE['bab_locale'];
+            $match = false;
+            foreach ($allowed_keys as &$value) {
+                if ($value === $cookie_locale)
+                    $match = true;
+                if (!$match)
+                    if (substr($value,0,2) === substr($cookie_locale,0,2))
+                        $match = true;
+            }
+            if ($match)
+                return $cookie_locale;
+        }
+        return false;
+    }
+
+    public function get_locale() {
+        $meta = json_decode($this->meta, true);
+        $auto = $meta['autoDetect'];
+        $default = $meta['default'];
+        $custom_urls = $meta['customUrls'];
+        $locale_keys = $meta['localeKeys'];
+        $locale_detection = $meta['localeDetection'];
+        $detected = '';
+        if($auto && !empty($locale_keys)){
+            $detected_lang = $this->detect_locale_from_header();
+            $normalized_lang = strtolower(str_replace('-','_',$detected_lang));
+            $match = false;
+            foreach ($locale_keys as &$value) {
+                if ($value === $normalized_lang)
+                    $match = true;
+                if (!$match)
+                    if (substr($value,0,2) === substr($normalized_lang,0,2))
+                        $match = true;
+            }
+            if ($match)
+                $detected = $normalized_lang;
+        }
+        $from_cookie = $this->detect_locale_from_cookie($locale_keys);
+        $parsed_url = parse_url($this->get_current_url());
+        switch ($locale_detection) {
+            case 'querystring':
+                if ((!empty($_GET)) && (!empty($_GET['locale'])))
+                    return $_GET['locale'];
+                else if ($from_cookie) 
+                    return $from_cookie;
+                else if ($detected) 
+                    return $detected;
+                return $default;
+            case 'subdir':
+                $path = $parsed_url['path'];
+                preg_match("/^(\/(\w\w(_\w\w)?))(?:\/|$)/", $path, $matches);
+                print_r($matches);
+                if ($matches) return $matches[2];
+                if ($detected) return $detected;
+                return $default;
+                break;
+            case 'custom':
+                function create_domain_regex($str) {
+                    $new_str = preg_replace("/([.?+^$[\]\\(){}|-])/g", "\\$1", $str);
+                    return preg_replace("/\*/g",'.*', $new_str);
+                }
+                foreach ($custom_urls as &$value) {
+                    $pattern = create_domain_regex($value);
+                    if (create_domain_regex.test($url))
+                        return $value;
+                }
+                return $default;
+                break;
+            default:
+                return $from_cookie;
+        }
+        return;
+    }
+
+    public function editor_url() {
+        return "http://www.bablic.com/channels/editor?site=$this->site_id&access_token=$this->access_token";
+    }
+
+    public function remove_site(){
+        $url = "https://www.bablic.com/api/v1/site/$this->site_id?access_token=$this->access_token";
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "DELETE");
+        $result = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        if ($httpCode === 204) {
+            $this->store->set(null);
+        }
+        curl_close($ch);
+    }
+   
+    public function handle_request($options) {
         if ($options['url'])
             $this->url = $options['url'];
         else
             $this->url = $this->get_current_url();
-        $this->site_id = $options['site_id'];
+        if ($options['nocache'] == true) $this->nocache = true;
         if (($this->is_bot() == false) && ($options['debug'] == false)) return;
+        $meta = json_decode($this->meta, true);
+        $default = $meta['default'];
+        if ($default === $this->get_locale()) return;
         $this->get_html_for_url($this->url);
     }
-   
+
     private function is_bot() {
         $is_bot =  '/bot|crawler|baiduspider|facebookexternalhit|Twitterbot|80legs|mediapartners-google|adsbot-google/i';
         if(preg_match($is_bot, $_SERVER['HTTP_USER_AGENT'], $matches))
