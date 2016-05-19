@@ -219,7 +219,7 @@ class BablicSDK {
                 }
                 foreach ($custom_urls as &$value) {
                     $pattern = create_domain_regex($value);
-                    if (create_domain_regex.test($url))
+                    if (preg_match($pattern, $url, $matches))
                         return $value;
                 }
                 return $default;
@@ -273,9 +273,17 @@ class BablicSDK {
             $protocol .= 's';
         return "$protocol://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
     }
+  
+    public function ignorable(url) {
+      $filename_tester = "/\.(js|css|jpg|jpeg|png|mp3|avi|mpeg|bmp|wav|pdf|doc|xml|docx|xlsx|xls|json|kml|svg|eot|woff|woff2)/"
+      return preg_match($filename_tester, url, $matches)
+    }
 
     public function process_buffer($buffer) {
         $headers = headers_list();
+        $rcode = http_response_code();
+        if ($rcode < 200 || $rcode > 300) return false; 
+        if ($this->ignorable($this->get_current_url())) return false;
         foreach ($headers as &$value) {
             $html_found = 0;
             $contenttype_found = 0;
@@ -304,7 +312,7 @@ class BablicSDK {
     }
 
     private function send_to_bablic($url, $html) {
-        $bablic_url = "https://www.bablic.com/api/engine/seo?site=$this->site_id&url=".urlencode($url);
+        $bablic_url = "https://seo.bablic.com/api/engine/seo?site=$this->site_id&url=".urlencode($url);
         $curl = curl_init($bablic_url);
 
         curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 0);
