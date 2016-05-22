@@ -66,8 +66,7 @@ class BablicSDK {
     }
 
     public function create_site($options) {
-        $url = "http://www.bablic.com/api/v1/site?channel_id=$this->channel_id";
-        $url = "http://f70ddd07.ngrok.io/api/v1/site?channel_id=$this->channel_id";
+        $url = "https://www.bablic.com/api/v1/site?channel_id=$this->channel_id";
         $payload = array(
             'url' => $options['site_url'],
             'email'=> $options['email'],
@@ -312,7 +311,7 @@ class BablicSDK {
     }
 
     private function send_to_bablic($url, $html) {
-        $bablic_url = "https://seo.bablic.com/api/engine/seo?site=$this->site_id&url=".urlencode($url);
+        $bablic_url = "http://seo.bablic.com/api/engine/seo?site=$this->site_id&url=".urlencode($url);
         $curl = curl_init($bablic_url);
 
         curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 0);
