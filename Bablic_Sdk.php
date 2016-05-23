@@ -206,7 +206,6 @@ class BablicSDK {
             case 'subdir':
                 $path = $parsed_url['path'];
                 preg_match("/^(\/(\w\w(_\w\w)?))(?:\/|$)/", $path, $matches);
-                print_r($matches);
                 if ($matches) return $matches[2];
                 if ($detected) return $detected;
                 return $default;
