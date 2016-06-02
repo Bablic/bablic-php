@@ -252,10 +252,15 @@ class BablicSDK {
             $this->url = $this->get_current_url();
         if ($options['nocache'] == true) $this->nocache = true;
         if (($this->is_bot() == false) && ($options['debug'] == false)) return;
-        $meta = json_decode($this->meta, true);
-        $default = $meta['default'];
-        if ($default === $this->get_locale()) return;
-        $this->get_html_for_url($this->url);
+        if($this->meta){
+           $meta = json_decode($this->meta, true);
+           $default = $meta['default'];
+           if ($default === $this->get_locale()) return;
+           $this->get_html_for_url($this->url);
+        }
+        else {
+           $this->get_html_for_url($this->url);
+        }
     }
 
     private function is_bot() {
