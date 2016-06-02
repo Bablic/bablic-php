@@ -246,12 +246,12 @@ class BablicSDK {
     }
    
     public function handle_request($options) {
-        if ($options['url'])
+        if (!empty($options['url']))
             $this->url = $options['url'];
         else
             $this->url = $this->get_current_url();
-        if ($options['nocache'] == true) $this->nocache = true;
-        if (($this->is_bot() == false) && ($options['debug'] == false)) return;
+        if (!empty($options['nocache']) && $options['nocache'] == true) $this->nocache = true;
+        if (($this->is_bot() == false) && (!empty($options['debug']) && $options['debug'] == false)) return;
         if($this->meta){
            $meta = json_decode($this->meta, true);
            $default = $meta['default'];
@@ -264,6 +264,8 @@ class BablicSDK {
     }
 
     private function is_bot() {
+    	if(empty($_SERVER['HTTP_USER_AGENT']))
+            return false;
         $is_bot =  '/bot|crawler|baiduspider|facebookexternalhit|Twitterbot|80legs|mediapartners-google|adsbot-google/i';
         if(preg_match($is_bot, $_SERVER['HTTP_USER_AGENT'], $matches))
             return true;
@@ -274,8 +276,8 @@ class BablicSDK {
         $protocol = 'http';
         if ($_SERVER['SERVER_PORT'] == 443 || (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on'))
             $protocol .= 's';
-        $host = $_SERVER[HTTP_HOST];
-        $uri = $_SERVER[REQUEST_URI];
+        $host = $_SERVER['HTTP_HOST'];
+        $uri = $_SERVER['REQUEST_URI'];
         return "$protocol://$host$uri";
     }
   
