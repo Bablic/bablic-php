@@ -246,6 +246,8 @@ class BablicSDK {
     }
    
     public function handle_request($options) {
+    	if(!$options)
+    	    $options = array();
         if ($options['url'])
             $this->url = $options['url'];
         else
