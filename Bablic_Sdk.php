@@ -276,7 +276,9 @@ class BablicSDK {
         $protocol = 'http';
         if ($_SERVER['SERVER_PORT'] == 443 || (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on'))
             $protocol .= 's';
-        return "$protocol://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
+        $host = $_SERVER[HTTP_HOST];
+        $uri = $_SERVER[REQUEST_URI];
+        return "$protocol://$host$uri";
     }
   
     public function ignorable(url) {
