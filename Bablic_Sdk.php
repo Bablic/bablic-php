@@ -35,7 +35,7 @@ class BablicSDK {
     private $version = '';
     private $meta = array();
 
-    public function BablicSDK($options) {
+    function __construct($options) {
         if (empty($options['channel_id'])){
             die('must provide channel_id');
         }       
