@@ -7,13 +7,15 @@ require 'Bablic_Sdk.php';
 $site_id = 'your site id';
 $bablic = new BablicSDK(
     array(
-        'site_id'=> $site_id,
+        'site_id'=> $site_id
+    )
+);
+$bablic->handle_request(array(
         'debug' => false, //optional
         'nocache' => false, //optional
         'url' => 'http://some.url.com' //optional
-    )
+   )
 );
-$bablic->handle_request();
 ```
 And that's it!
 
