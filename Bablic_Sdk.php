@@ -37,7 +37,7 @@ class BablicSDK {
 
     function __construct($options) {
         if (empty($options['channel_id'])){
-            die('must provide channel_id');
+            $options['channel_id'] = 'php';
         }       
         $this->channel_id = $options['channel_id'];
         if ($this->channel_id === 'wp')
@@ -246,8 +246,6 @@ class BablicSDK {
     }
    
     public function handle_request($options) {
-    	if(!$options)
-    	    $options = array();
         if ($options['url'])
             $this->url = $options['url'];
         else
