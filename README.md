@@ -5,7 +5,7 @@ Place this snippet at the top of your index.php file.:
 ```sh
 require 'Bablic_Sdk.php';
 $site_id = 'your site id';
-$bablic_server = new Bablic(
+$bablic = new Bablic(
     array(
         'site_id'=> $site_id,
         'debug' => false, //optional
@@ -13,6 +13,7 @@ $bablic_server = new Bablic(
         'url' => 'http://some.url.com' //optional
     )
 );
+$bablic->handle_request();
 ```
 And that's it!
 
