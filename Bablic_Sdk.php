@@ -229,7 +229,7 @@ class BablicSDK {
     }
 
     public function editor_url() {
-        return "http://www.bablic.com/channels/editor?site=$this->site_id&access_token=$this->access_token";
+        return "https://www.bablic.com/channels/editor?site=$this->site_id&access_token=$this->access_token";
     }
 
     public function remove_site(){
