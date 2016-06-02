@@ -282,8 +282,8 @@ class BablicSDK {
     }
   
     public function ignorable($url) {
-      $filename_tester = "/\.(js|css|jpg|jpeg|png|mp3|avi|mpeg|bmp|wav|pdf|doc|xml|docx|xlsx|xls|json|kml|svg|eot|woff|woff2)/"
-      return preg_match($filename_tester, $url, $matches)
+      $filename_tester = "/\.(js|css|jpg|jpeg|png|mp3|avi|mpeg|bmp|wav|pdf|doc|xml|docx|xlsx|xls|json|kml|svg|eot|woff|woff2)/";
+      return preg_match($filename_tester, $url, $matches);
     }
 
     public function process_buffer($buffer) {
