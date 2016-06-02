@@ -5,7 +5,7 @@ Place this snippet at the top of your index.php file.:
 ```sh
 require 'Bablic_Sdk.php';
 $site_id = 'your site id';
-$bablic = new Bablic(
+$bablic = new BablicSDK(
     array(
         'site_id'=> $site_id,
         'debug' => false, //optional
