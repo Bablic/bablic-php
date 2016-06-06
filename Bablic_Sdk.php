@@ -58,6 +58,7 @@ class BablicSDK {
     private $site_id = '';
     private $save_flag = true;
     private $done = false;
+    private $subdir = false;
     private $url = '';
     private $nocache = false;
     private $access_token = '';
@@ -76,6 +77,8 @@ class BablicSDK {
             $this->store = new file_store();
         if ($this->store->get('site_id') != '') 
             $this->get_data_from_store();
+        if(!empty($options['subdir']))
+            $this->subdir = $options['subdir'];
     }
 
     private function save_data_to_store(){
@@ -185,7 +188,23 @@ class BablicSDK {
     }
 
     public function get_snippet() {
+        if($this->subdir)
+            return '<script type="text/javascript">var bablic=bablic||{};bablic.localeURL="subdir"</script>'.$this->snippet;
+        
         return $this->snippet;
+    }
+
+    public function alt_tags(){
+        $meta = json_decode($this->meta, true);
+        $locale_keys = $meta['localeKeys'];
+        $locale = $this->get_locale();
+        $url = $_SERVER['REQUEST_URI'];
+        foreach( $locale_keys as $alt){
+            if($alt != $locale)
+                echo '<link rel="alternate" href="/' . $this->get_link($alt,$url) . '" hreflang="'.$alt.'">';
+        }
+        if($locale != $meta['original'])
+            echo '<link rel="alternate" href="/' . $this->get_link($locale,$url) . '" hreflang="'.$locale.'">';
     }
 
     private function get_all_headers() {
@@ -222,6 +241,61 @@ class BablicSDK {
                 return $cookie_locale;
         }
         return false;
+    }
+
+    public function get_link($locale, $url) {
+        $parsed = parse_url($url);
+        $scheme = isset($parsed['scheme']) ? $parsed['scheme'] . '://' : 'http://';
+        $host = $parsed['host'];
+        $port = isset($parsed['port']) ? ':' . $parsed['port'] : '';
+        $path = isset($parsed['path']) ? $parsed['path'] : '/';
+        $query    = isset($parsed['query']) ? '?' . $parsed['query'] : '';
+        $fragment = isset($parsed['fragment']) ? '#' . $parsed['fragment'] : '';
+        $meta = json_decode($this->meta, true);
+        $link = 'javascript:void(0);';
+        $localeDetection = $meta['localeDetection'];
+        if($this->subdir)
+            $localeDetection = 'subdir';
+        if($localeDetection == 'custom' && empty('customUrls')
+            $localeDetection = 'querystring';
+
+        switch($localeDetection){
+            case 'custom':
+                $custom_url = $meta['customUrls'][$locale];
+                if ($custom_url) {
+                    if(strpos($custom_url, '/') !== false){
+                        // custom contains querystring
+                        if(strpos($custom_url, '?') !== false)
+                            return '$scheme$custom_url$fragment';
+
+                        // custom contains path
+                        return '$scheme$custom_url$query$fragment';
+                    }
+                    // custom is only domain
+                    return '$scheme$custom_url$path$query$fragment';
+                }
+                break;
+            case 'querystring':
+                $query_locale = '';
+                if(!isset($parsed['query'])
+                    return '$scheme$host$port$path?locale=$locale$fragment';
+
+                $output = array();
+                parse_str($query,$output);
+                $output['locale'] = $locale;
+                $query = http_build_query($output);
+                return '$scheme$host$port$path$query$fragment';
+            case 'subdir':
+                $locale_keys = $meta['localeKeys'];
+                $locale_regex = "(" . implode("|",$locale_keys) . ")";
+                $path = preg_replace('/^\/'.$locale_regex.'\//','/',$path);
+                $prefix = $locale == $original ? '' : '/' . $locale;
+                return '$scheme$host$port$prefix$path$query$fragment';
+            case 'hash':
+                $fragment = '#locale_'.$locale;
+                return '$scheme$host$port$path$query$fragment';
+        }
+        return $url;
     }
 
     public function get_locale() {
