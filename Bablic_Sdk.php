@@ -15,6 +15,36 @@ class mock_store {
     }
 }
 
+
+class file_store {
+    private $store = array();
+
+    function __construct() {
+        $tmp_dir = sys_get_temp_dir();
+        $this->filename = "$tmp_dir/bablic_snippet";
+        if(file_exists($this->filename)){
+            $str = file_get_contents($this->filename);
+            $this->store = json_decode($str, true);
+        }
+    }
+    public function get($key){
+        if (empty($this->store[$key]))
+            return '';
+        else
+            return $this->store[$key];
+    }
+
+    public function set($key, $value){
+        $this->store[$key] = $value;
+        $file = fopen($this->filename, "w");
+        if($file){
+            $str = json_encode($this->store);
+            fwrite($file, $str);
+            fclose($file);
+        }
+    }
+}
+
 class wp_store {
     public function get($key){
 		return get_option($key);
@@ -43,7 +73,7 @@ class BablicSDK {
         if ($this->channel_id === 'wp')
             $this->store = new wp_store();
         else
-            $this->store = new mock_store();
+            $this->store = new file_store();
         if ($this->store->get('site_id') != '') 
             $this->get_data_from_store();
     }
@@ -63,6 +93,30 @@ class BablicSDK {
        $this->meta = $this->store->get('meta');
        $this->snippet = $this->store->get('snippet');
        $this->access_token = $this->store->get('access_token');
+    }
+
+    public function set_site($site_id,$callback=''){
+        $this->site_id = $site_id;
+        $this->access_token = '';
+        $this->get_site_from_bablic();
+
+        $url = "https://www.bablic.com/api/v1/site/$site_id?channel_id=$this->channel_id";
+        $payload = array(
+            'callback' => $callback,
+        );
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+        curl_setopt($ch, CURLOPT_HEADER, false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array("Content-type: application/json","Expect:"));
+        curl_setopt($ch, CURLOPT_PUT, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+        $result = curl_exec($ch);
+        $result = json_decode($result, true);
+        if (!empty($result['error'])) {
+            return array("error" => "Bablic returned error");
+        }
     }
 
     public function create_site($options) {
