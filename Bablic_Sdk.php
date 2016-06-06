@@ -55,7 +55,7 @@ class wp_store {
 }
 
 class BablicSDK {
-    private $site_id = '';
+    public $site_id = '';
     private $save_flag = true;
     private $done = false;
     private $subdir = false;
@@ -190,7 +190,6 @@ class BablicSDK {
     public function get_snippet() {
         if($this->subdir)
             return '<script type="text/javascript">var bablic=bablic||{};bablic.localeURL="subdir"</script>'.$this->snippet;
-        
         return $this->snippet;
     }
 
@@ -245,8 +244,8 @@ class BablicSDK {
 
     public function get_link($locale, $url) {
         $parsed = parse_url($url);
-        $scheme = isset($parsed['scheme']) ? $parsed['scheme'] . '://' : 'http://';
-        $host = $parsed['host'];
+        $scheme = isset($parsed['scheme']) ? $parsed['scheme'] . '://' : '';
+        $host = isset($parsed['host']) ? $parsed['host'] : '';
         $port = isset($parsed['port']) ? ':' . $parsed['port'] : '';
         $path = isset($parsed['path']) ? $parsed['path'] : '/';
         $query    = isset($parsed['query']) ? '?' . $parsed['query'] : '';
@@ -256,13 +255,14 @@ class BablicSDK {
         $localeDetection = $meta['localeDetection'];
         if($this->subdir)
             $localeDetection = 'subdir';
-        if($localeDetection == 'custom' && empty('customUrls')
+        if($localeDetection == 'custom' && empty('customUrls'))
             $localeDetection = 'querystring';
 
         switch($localeDetection){
             case 'custom':
                 $custom_url = $meta['customUrls'][$locale];
                 if ($custom_url) {
+                    $scheme = $scheme == '' ? 'http://' : $scheme;
                     if(strpos($custom_url, '/') !== false){
                         // custom contains querystring
                         if(strpos($custom_url, '?') !== false)
@@ -277,7 +277,7 @@ class BablicSDK {
                 break;
             case 'querystring':
                 $query_locale = '';
-                if(!isset($parsed['query'])
+                if(!isset($parsed['query']))
                     return '$scheme$host$port$path?locale=$locale$fragment';
 
                 $output = array();
@@ -296,6 +296,20 @@ class BablicSDK {
                 return '$scheme$host$port$path$query$fragment';
         }
         return $url;
+    }
+
+    public function get_original(){
+        if(!$this->meta)
+            return null;
+        $meta = json_decode($this->meta, true);
+        return $meta['original'];
+    }
+
+    public function get_locales(){
+        if(!$this->meta)
+            return array();
+        $meta = json_decode($this->meta, true);
+        return $meta['localeKeys'];
     }
 
     public function get_locale() {
