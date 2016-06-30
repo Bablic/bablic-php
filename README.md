@@ -42,3 +42,8 @@ nocache - optional, when true does not use cache
 
 url - optional, if you ever need to query Bablic for a diffrent domain (testing, staging, etc)
 
+
+
+bablic_top() - generates the snippet code to put in the page head tags
+
+bablic_bottom() - generates the snippet code to put in the page bottom
