@@ -210,6 +210,23 @@ class BablicSDK {
         return $this->snippet;
     }
 
+    public function bablic_top(){
+        echo '<!-- start Bablic Head -->';
+        $this->alt_tags();
+        if($this->get_locale() != $this->get_original()){
+            echo $this->get_snippet();
+        }
+        echo '<!-- end Bablic Head -->';
+    }
+
+    public function bablic_bottom(){
+        if($this->get_locale() == $this->get_original()){
+			echo '<!-- start Bablic Footer -->';
+			echo $this->get_snippet();
+			echo '<!-- end Bablic Footer -->';
+		}
+    }
+
     public function alt_tags(){
         $meta = json_decode($this->meta, true);
         $locale_keys = $meta['localeKeys'];
