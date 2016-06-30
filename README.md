@@ -44,7 +44,7 @@ url - optional, if you ever need to query Bablic for a diffrent domain (testing,
 
 #Methods
 
-handle_request() - handles response, renders html for crawling engines
+handle_request() - request middleware, renders html optimized for crawling engines, only to crawling engines
 
 bablic_top() - generates the snippet code to put in the page head tags
 
