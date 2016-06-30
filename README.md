@@ -42,7 +42,9 @@ nocache - optional, when true does not use cache
 
 url - optional, if you ever need to query Bablic for a diffrent domain (testing, staging, etc)
 
+#Methods
 
+handle_request() - handles response, renders html for crawling engines
 
 bablic_top() - generates the snippet code to put in the page head tags
 
