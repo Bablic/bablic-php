@@ -475,6 +475,7 @@ class BablicSDK {
         }
         if (($html_found === false)&&($contenttype_found === 0)) return false;
         $html = ob_get_contents();
+		
         $url = $this->url;
         $response = $this->send_to_bablic($url, $html);
         return $response;
@@ -485,11 +486,16 @@ class BablicSDK {
 
     private function full_path_from_url($url) {
         $tmp_dir = sys_get_temp_dir();
+		$folder = "$tmp_dir/bablic_cache";
+		if (!file_exists($folder)){
+			mkdir($folder);
+		} 
+
         $filename = $this->filename_from_url($url);
-        return "$tmp_dir/$filename";
+        return "$folder/$filename";
     }
 
-	public function write_buffer($ch,$fp,$len){		
+	public function write_buffer($ch,$fp,$len){
 		$data = substr($this->_body, $this->pos, $len);
 		// increment $pos
 		$this->pos += strlen($data);
@@ -546,17 +552,22 @@ class BablicSDK {
 
     private function read_from_cache($filename) {
         if ($this->nocache == true) return false;
-        $html_file = file_exists($filename);
-        if ($html_file) {
-            $file_modified = filemtime($filename);
-            $now = round(microtime(true) * 1000);
-            $validity = ($now - (2*24*60*60*1000) > $file_modified);
-            if ($validity === false) return false;
-            readfile($filename);
-            return true;
-        } else {
-            return false;
-        }
+		try{
+			$html_file = file_exists($filename);
+			if ($html_file) {
+				$file_modified = filemtime($filename);
+				$now = round(microtime(true) * 1000);
+				$validity = ($now - (2*24*60*60*1000) > $file_modified);
+				if ($validity === false) return false;
+				readfile($filename);
+				return true;
+			} else {
+				return false;
+			}
+		}
+		catch(Exception $e){
+			return false;
+		}
     }
 }
 ?>
