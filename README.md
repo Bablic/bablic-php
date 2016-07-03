@@ -1,22 +1,29 @@
 # Bablic-php
 
 How To Use:
-Place this snippet at the top of your index.php file.:
+1) Download "bablic.php" into your php index folder.
+2) Place this snippet at the top of your index.php file.:
 ```sh
 <?php
-require 'Bablic_Sdk.php';
+# init the Bablci SDK with your site ID (required)
+require 'bablic.php';
 $site_id = 'your site id';
 $bablic = new BablicSDK(
     array(
         'site_id'=> $site_id
     )
 );
-$bablic->handle_request(array(
+
+# run the SEO middlware
+$bablic->handle_request(
+    /*array(
         'debug' => false, //optional
         'nocache' => false, //optional
         'url' => 'http://some.url.com' //optional
-   )
+   )*/
 );
+
+# Example: how to paste the snippet in your HTML
 ?>
 <html>
    <head>
