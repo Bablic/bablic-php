@@ -79,6 +79,8 @@ class BablicSDK {
             $this->store = new file_store();
         if ($this->store->get('site_id') != '') 
             $this->get_data_from_store();
+		if(!empty($options['site_id']))
+			$this->site_id = $options['site_id'];
         if(!empty($options['subdir']))
             $this->subdir = $options['subdir'];
     }
