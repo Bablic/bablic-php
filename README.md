@@ -13,7 +13,8 @@ require 'bablic.php';
 $site_id = 'your site id';
 $bablic = new BablicSDK(
     array(
-        'site_id'=> $site_id
+        'site_id'=> $site_id,
+        'subdir'=>true // optional, set your website with subdir languages (/fr/, /it/,...)
     )
 );
 
