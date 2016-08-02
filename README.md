@@ -1,8 +1,11 @@
 # Bablic-php
 
 How To Use:
+
 1) Download "bablic.php" into your php index folder.
-2) Place this snippet at the top of your index.php file.:
+
+2) Place this snippet at the top of your index.php file:
+
 ```sh
 <?php
 # init the Bablci SDK with your site ID (required)
