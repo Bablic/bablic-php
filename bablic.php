@@ -67,6 +67,7 @@ class BablicSDK {
     private $meta = '';
 	private $_body = '';
 	private $pos = 0;
+	private $timestamp = 0;
 
     function __construct($options) {
         if (empty($options['channel_id'])){
@@ -84,6 +85,11 @@ class BablicSDK {
 			if($this->store->get('site_id') != $this->site_id)
 				$this->get_site_from_bablic();
 		}
+		if($this->site_id && (empty($this->timestamp) || ((time() - $this->timestamp) > 12000))){
+			$this->timestamp = time();
+			$this->get_site_from_bablic();
+		}
+
         if(!empty($options['subdir']))
             $this->subdir = $options['subdir'];
     }
@@ -94,6 +100,7 @@ class BablicSDK {
         $this->store->set('version', $this->version);
         $this->store->set('snippet', $this->snippet);
         $this->store->set('site_id', $this->site_id);
+        $this->store->set('time',$this->timestamp);
     }
 	
 	private function clear_data(){
@@ -111,6 +118,7 @@ class BablicSDK {
        $this->meta = $this->store->get('meta');
        $this->snippet = $this->store->get('snippet');
        $this->access_token = $this->store->get('access_token');
+       $this->timestamp = $this->store->get('time');
     }
 
     public function set_site($site,$callback=''){
@@ -119,7 +127,7 @@ class BablicSDK {
         $this->site_id = $site['id'];
         $this->access_token = isset($site['access_token']) ? $site['access_token'] : '';
         $this->get_site_from_bablic();
-        $url = "https://www.bablic.com/api/v1/site/$site_id?access_token=$this->access_token&channel_id=$this->channel_id";
+        $url = "https://www.bablic.com/api/v1/site/".$site['id']."?access_token=$this->access_token&channel_id=$this->channel_id";
         $payload = array(
             'callback' => $callback,
         );
@@ -183,6 +191,7 @@ class BablicSDK {
         $this->snippet = $result['snippet'];
         $this->version = $result['version'];
         $this->meta = json_encode($result['meta']);
+        $this->timestamp = time();
         $this->save_data_to_store();
     }
 	
@@ -237,12 +246,14 @@ class BablicSDK {
         $locale_keys = $meta['localeKeys'];
         $locale = $this->get_locale();
         $url = $_SERVER['REQUEST_URI'];
-        foreach( $locale_keys as $alt){
-            if($alt != $locale)
-                echo '<link rel="alternate" href="' . $this->get_link($alt,$url) . '" hreflang="'.$alt.'">';
+        if(is_array($locale_keys)){
+            foreach( $locale_keys as $alt){
+                if($alt != $locale)
+                    echo '<link rel="alternate" href="' . $this->get_link($alt,$url) . '" hreflang="'.$alt.'">';
+            }
+            if($locale != $meta['original'])
+                echo '<link rel="alternate" href="' . $this->get_link($locale,$url) . '" hreflang="'.$locale.'">';
         }
-        if($locale != $meta['original'])
-            echo '<link rel="alternate" href="' . $this->get_link($locale,$url) . '" hreflang="'.$locale.'">';
     }
 
     private function get_all_headers() {
@@ -352,6 +363,8 @@ class BablicSDK {
     }
 
     public function get_locale() {
+        if(!empty($_SERVER['HTTP_BABLIC_LOCALE']))
+            return $_SERVER['HTTP_BABLIC_LOCALE'];
 		if($this->meta == '')
 			return '';
         $meta = json_decode($this->meta, true);
@@ -517,7 +530,7 @@ class BablicSDK {
         return "$folder/$filename";
     }
 
-	public function write_buffer($ch,$fp,$len){
+	public function write_buffer($ch,$fp,$len){		
 		$data = substr($this->_body, $this->pos, $len);
 		// increment $pos
 		$this->pos += strlen($data);
@@ -542,8 +555,7 @@ class BablicSDK {
         $response = curl_exec($curl);
         $status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
         if (($status != 200 ) && ($status != 301)) {
-            return $html;
-            die("Error: curl_error " . curl_error($curl) . ", curl_errno " . curl_errno($curl));
+            return $html;            
         }
 
         curl_close($curl);
