@@ -379,16 +379,16 @@ class BablicSDK {
         if($auto && !empty($locale_keys)){
             $detected_lang = $this->detect_locale_from_header();
             $normalized_lang = strtolower(str_replace('-','_',$detected_lang));
-            $match = false;
             foreach ($locale_keys as &$value) {
-                if ($value === $normalized_lang)
-                    $match = true;
-                if (!$match)
-                    if (substr($value,0,2) === substr($normalized_lang,0,2))
-                        $match = true;
+                if ($value === $normalized_lang){
+                    $detected = $value;
+                    break;
+                }
+                if (!$match && substr($value,0,2) === substr($normalized_lang,0,2)){
+                    $detected = $value;
+                    break;
+                }
             }
-            if ($match)
-                $detected = $normalized_lang;
         }
         $from_cookie = $this->detect_locale_from_cookie($locale_keys);
         $parsed_url = parse_url($this->get_current_url());
@@ -405,9 +405,11 @@ class BablicSDK {
                 $path = $parsed_url['path'];
                 preg_match("/^(\/(\w\w(_\w\w)?))(?:\/|$)/", $path, $matches);
                 if ($matches) return $matches[2];
-                if ($detected) return $detected;
+                if ($from_cookie)
+                    return $default;
+                if ($detected)
+                    return $detected;
                 return $default;
-                break;
             case 'custom':
                 function create_domain_regex($str) {
                     $new_str = preg_replace("/([.?+^$[\]\\(){}|-])/g", "\\$1", $str);
@@ -419,7 +421,6 @@ class BablicSDK {
                         return $value;
                 }
                 return $default;
-                break;
             default:
                 return $from_cookie;
         }
