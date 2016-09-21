@@ -74,7 +74,9 @@ class BablicSDK {
             $options['channel_id'] = 'php';
         }       
         $this->channel_id = $options['channel_id'];
-        if ($this->channel_id === 'wp')
+        if(!empty($options['store']))
+            $this->store = $options['store'];
+        else if ($this->channel_id === 'wp')
             $this->store = new wp_store();
         else
             $this->store = new file_store();
@@ -219,8 +221,10 @@ class BablicSDK {
     }
 
     public function get_snippet() {
-        if($this->subdir)
-            return '<script type="text/javascript">var bablic=bablic||{};bablic.localeURL="subdir"</script>'.$this->snippet;
+        if($this->subdir){
+            $locale = $this->get_locale();
+            return '<script type="text/javascript">var bablic=bablic||{};bablic.localeURL="subdir";bablic.locale="'.$locale.'"</script>'.$this->snippet;
+        }
         return $this->snippet;
     }
 
@@ -384,7 +388,7 @@ class BablicSDK {
                     $detected = $value;
                     break;
                 }
-                if (!$match && substr($value,0,2) === substr($normalized_lang,0,2)){
+                if (substr($value,0,2) === substr($normalized_lang,0,2)){
                     $detected = $value;
                     break;
                 }
