@@ -313,6 +313,8 @@ class BablicSDK {
 
     public function detect_locale_from_header() {
         $headers = $this->get_all_headers();
+        if(!isset($headers['Accept-Language']))
+            return false;
         $lang = explode(',', $headers['Accept-Language']);
         if (!empty($lang)) return $lang[0];
         return false;
