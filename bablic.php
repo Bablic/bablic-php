@@ -51,16 +51,18 @@ class BablicSDK {
     private $save_flag = true;
     private $done = false;
     private $subdir = false;
+    private $subdir_base = '';
     private $url = '';
     private $nocache = false;
     public $access_token = '';
     private $channel_id = '';
     private $version = '';
     private $meta = '';
-    private $trial_started = false;
+    public $trial_started = false;
 	private $_body = '';
 	private $pos = 0;
 	private $timestamp = 0;
+	private $use_snippet_url = false;
 
     function __construct($options) {
         if (empty($options['channel_id'])){
@@ -86,9 +88,14 @@ class BablicSDK {
         if(!empty($options['subdir']) && $this->meta){
             $meta = json_decode($this->meta, true);
             $locale_keys = $meta['localeKeys'];
-            if(count($locale_keys) > 0)
+            if(count($locale_keys) > 0){
                 $this->subdir = $options['subdir'];
+                if(!empty($options['subdir_base']))
+                    $this->subdir_base = $options['subdir_base'];
+            }
         }
+        if(isset($options['use_snippet_url']))
+            $this->use_snippet_url = true;
     }
 
     private function save_data_to_store(){
@@ -153,9 +160,9 @@ class BablicSDK {
         $url = "https://www.bablic.com/api/v1/site?channel_id=$this->channel_id";
         $payload = array(
             'url' => $options['site_url'],
-            'email'=> $options['email'],
-            'original' => $options['original_locale'],
-            'callback' => $options['callback'],
+            'email'=> isset($options['email']) ? $options['email'] : '',
+            'original' => isset($options['original_locale']) ? $options['original_locale'] : '',
+            'callback' => isset($options['callback']) ? $options['callback'] : '',
         );
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
@@ -172,7 +179,7 @@ class BablicSDK {
         }
         $this->access_token = $result['access_token'];
         $this->site_id = $result['id'];
-        $this->snippet = $result['snippet'];
+        $this->snippet = $this->use_snippet_url ? '<script type="text/javascript" src="'. $result['snippetURL'] .'"></script>': $result['snippet'];
         $this->version = $result['version'];
         $this->trial_started = false;
         $this->meta = json_encode($result['meta']);
@@ -198,7 +205,7 @@ class BablicSDK {
 		if(!empty($result['access_token']))
 			$this->access_token = $result['access_token'];
         $this->site_id = $result['id'];
-        $this->snippet = $result['snippet'];
+        $this->snippet = $this->use_snippet_url ? '<script type="text/javascript" src="'. $result['snippetURL'] .'"></script>': $result['snippet'];
         $this->version = $result['version'];
         $this->trial_started = $result['trialStarted'];
         $this->meta = json_encode($result['meta']);
@@ -218,7 +225,10 @@ class BablicSDK {
 		}
         array_map('unlink', glob("$folder/*"));
     }
-
+    
+    public function get_meta() {
+      return $this->meta;
+    }
     public function get_site(){
         return array (
             "meta" => $this->meta,
@@ -233,7 +243,7 @@ class BablicSDK {
     public function get_snippet() {
         if($this->subdir){
             $locale = $this->get_locale();
-            return '<script type="text/javascript">var bablic=bablic||{};bablic.localeURL="subdir";bablic.locale="'.$locale.'"</script>'.$this->snippet;
+            return '<script type="text/javascript">var bablic=bablic||{};bablic.localeURL="subdir";bablic.subDirBase="'.$this->subdir_base.'";bablic.locale="'.$locale.'"</script>'.$this->snippet;
         }
         return $this->snippet;
     }
@@ -383,9 +393,9 @@ class BablicSDK {
             case 'subdir':
                 $locale_keys = $meta['localeKeys'];
                 $locale_regex = "(" . implode("|",$locale_keys) . ")";
-                $path = preg_replace('/^\/'.$locale_regex.'\//','/',$path);
+                $path = preg_replace('/^(?:'.preg_quote($this->subdir_base,'/').')?\/'.$locale_regex.'\//','/',$path);
                 $prefix = $locale == $meta['original'] ? '' : '/' . $locale;
-                return $scheme.$host.$port.$prefix.$path.$query.$fragment;
+                return $scheme.$host.$port.$this->subdir_base.$prefix.$path.$query.$fragment;
             case 'hash':
                 $fragment = '#locale_'.$locale;
                 return $scheme.$host.$port.$path.$query.$fragment;
@@ -448,7 +458,7 @@ class BablicSDK {
                 return $default;
             case 'subdir':
                 $path = $parsed_url['path'];
-                preg_match("/^(\/(\w\w(_\w\w)?))(?:\/|$)/", $path, $matches);
+                preg_match("/^(?:".preg_quote($this->subdir_base,'/').")?(\/(\w\w(_\w\w)?))(?:\/|$)/", $path, $matches);
                 if ($matches) return $matches[2];
                 if ($from_cookie)
                     return $default;
@@ -585,7 +595,7 @@ class BablicSDK {
 	}
 
     private function send_to_bablic($url, $html) {
-        $bablic_url = "http://seo.bablic.com/api/engine/seo?site=$this->site_id&url=".urlencode($url).($this->subdir ? "&ld=subdir" : "");
+        $bablic_url = "http://seo.bablic.com/api/engine/seo?site=$this->site_id&url=".urlencode($url).($this->subdir ? "&ld=subdir" : "").($this->subdir_base ? "&sdb=" .urlencode($this->subdir_base) : "");
         $curl = curl_init($bablic_url);
 		$length = strlen($html);
         curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 0);
