@@ -80,6 +80,13 @@ class BablicSDK {
 			if($this->store->get('site_id') != $this->site_id)
 				$this->get_site_from_bablic();
 		}
+        if($this->site_id){
+            try{
+                header('x-bablic-id: '.$this->site_id);
+            }
+            catch(Exception $e){
+            }
+        }
 		if($this->site_id && (empty($this->timestamp) || ((time() - $this->timestamp) > 12000))){
 			$this->timestamp = time();
 			$this->get_site_from_bablic();
@@ -331,7 +338,7 @@ class BablicSDK {
     }
 
     public function detect_locale_from_cookie($allowed_keys) {
-        if (!empty($_COOKIE['bab_locale']) && !empty($allowed_keys)){
+        if (!empty($_COOKIE) && !empty($_COOKIE['bab_locale']) && !empty($allowed_keys)){
             $cookie_locale = $_COOKIE['bab_locale'];
             $match = false;
             foreach ($allowed_keys as &$value) {
