@@ -83,6 +83,8 @@ class BablicSDK {
 			$this->site_id = $options['site_id'];
 			if($this->store->get('site_id') != $this->site_id)
 				$this->get_site_from_bablic();
+            else if(!empty($_SERVER['HTTP_X_BABLIC_REFRESH']))
+                $this->get_site_from_bablic();
 		}
         if($this->site_id){
             try{
