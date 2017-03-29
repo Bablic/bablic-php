@@ -65,6 +65,7 @@ class BablicSDK {
 	private $use_snippet_url = false;
 	private $bablic_base = 'https://www.bablic.com';
 	private $bablic_seo_base = 'http://seo.bablic.com';
+	private $_locale = '';
 
     function __construct($options) {
         if (empty($options['channel_id'])){
@@ -437,7 +438,7 @@ class BablicSDK {
         return $meta['localeKeys'];
     }
 
-    public function get_locale() {
+    private function get_locale_inner(){
         if(!empty($_SERVER['HTTP_BABLIC_LOCALE']))
             return $_SERVER['HTTP_BABLIC_LOCALE'];
 		if($this->meta == '')
@@ -466,7 +467,8 @@ class BablicSDK {
             }
         }
         $from_cookie = $this->detect_locale_from_cookie($locale_keys);
-        $parsed_url = parse_url($this->get_current_url());
+        $url = $this->get_current_url();
+        $parsed_url = parse_url($url);
         switch ($locale_detection) {
             case 'querystring':
                 if ((!empty($_GET)) && (!empty($_GET['locale'])))
@@ -486,12 +488,8 @@ class BablicSDK {
                     return $detected;
                 return $default;
             case 'custom':
-                function create_domain_regex($str) {
-                    $new_str = preg_replace("/([.?+^$[\]\\(){}|-])/", "\\$1", $str);
-                    return preg_replace("/\*/",'.*', $new_str);
-                }
                 foreach ($custom_urls as $key => $value) {
-                    $pattern = create_domain_regex($value);
+                    $pattern = $this->create_domain_regex($value);
                     if (preg_match($pattern, $url, $matches))
                         return $key;
                 }
@@ -500,6 +498,20 @@ class BablicSDK {
                 return $from_cookie;
         }
         return;
+    }
+
+    public function get_locale() {
+        if($this->_locale != '')
+            return $this->_locale;
+        $locale = $this->get_locale_inner();
+        $this->_locale = $locale;
+        return $locale;
+    }
+
+
+    private function create_domain_regex($str){
+        $new_str = preg_replace("/([.?+^$[\]\\\/(){}|-])/", "\\\\$1", $str);
+        return '/'.preg_replace("/\*/",'.*', $new_str).'/';
     }
 
     public function editor_url() {
