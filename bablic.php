@@ -487,13 +487,13 @@ class BablicSDK {
                 return $default;
             case 'custom':
                 function create_domain_regex($str) {
-                    $new_str = preg_replace("/([.?+^$[\]\\(){}|-])/g", "\\$1", $str);
-                    return preg_replace("/\*/g",'.*', $new_str);
+                    $new_str = preg_replace("/([.?+^$[\]\\(){}|-])/", "\\$1", $str);
+                    return preg_replace("/\*/",'.*', $new_str);
                 }
-                foreach ($custom_urls as &$value) {
+                foreach ($custom_urls as $key => $value) {
                     $pattern = create_domain_regex($value);
                     if (preg_match($pattern, $url, $matches))
-                        return $value;
+                        return $key;
                 }
                 return $default;
             default:
