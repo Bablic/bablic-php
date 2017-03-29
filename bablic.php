@@ -64,13 +64,16 @@ class BablicSDK {
 	private $timestamp = 0;
 	private $use_snippet_url = false;
 	private $bablic_base = 'https://www.bablic.com';
+	private $bablic_seo_base = 'http://seo.bablic.com';
 
     function __construct($options) {
         if (empty($options['channel_id'])){
             $options['channel_id'] = 'php';
         }
-        if(!empty($options['test']) && $options['test'])
+        if(!empty($options['test']) && $options['test']){
             $this->bablic_base = 'http://staging.bablic.com';
+            $this->bablic_seo_base = 'http://staging.bablic.com';
+        }
 
         $this->channel_id = $options['channel_id'];
         if(!empty($options['store']))
@@ -612,7 +615,7 @@ class BablicSDK {
 	}
 
     private function send_to_bablic($url, $html) {
-        $bablic_url = "http://seo.bablic.com/api/engine/seo?site=$this->site_id&url=".urlencode($url).($this->subdir ? "&ld=subdir" : "").($this->subdir_base ? "&sdb=" .urlencode($this->subdir_base) : "");
+        $bablic_url = $this->bablic_seo_base . "/api/engine/seo?site=$this->site_id&url=".urlencode($url).($this->subdir ? "&ld=subdir" : "").($this->subdir_base ? "&sdb=" .urlencode($this->subdir_base) : "");
         $curl = curl_init($bablic_url);
 		$length = strlen($html);
         curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 0);
