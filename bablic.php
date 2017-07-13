@@ -294,10 +294,14 @@ class BablicSDK {
         );
     }
 
-    public function get_snippet() {
+    public function get_snippet($async) {
         if($this->subdir){
             $locale = $this->get_locale();
-            return '<script type="text/javascript">var bablic=bablic||{};bablic.localeURL="subdir";bablic.subDirBase="'.$this->subdir_base.'";bablic.locale="'.$locale.'"</script>'.$this->snippet;
+            $asyncAttr = '';
+            if($async) {
+                $asyncAttr = 'async ';
+            }
+            return '<script ' . $async . 'type="text/javascript">var bablic=bablic||{};bablic.localeURL="subdir";bablic.subDirBase="'.$this->subdir_base.'";bablic.locale="'.$locale.'"</script>'.$this->snippet;
         }
         return $this->snippet;
     }
@@ -317,7 +321,7 @@ class BablicSDK {
 
     public function get_bablic_bottom(){
         if($this->get_locale() == $this->get_original()){
-            return '<!-- start Bablic Footer -->'. $this->get_snippet() . '<!-- end Bablic Footer -->';
+            return '<!-- start Bablic Footer -->'. $this->get_snippet(true) . '<!-- end Bablic Footer -->';
         }
         return '';
     }
@@ -326,7 +330,7 @@ class BablicSDK {
     public function bablic_bottom(){
         if($this->get_locale() == $this->get_original()){
 			echo '<!-- start Bablic Footer -->';
-			echo $this->get_snippet();
+			echo $this->get_snippet(true);
 			echo '<!-- end Bablic Footer -->';
 		}
     }
