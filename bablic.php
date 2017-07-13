@@ -307,15 +307,13 @@ class BablicSDK {
     }
 
     public function get_bablic_top(){
-        return '<!-- start Bablic Head -->'.$this->get_alt_tags().($this->get_locale() != $this->get_original() ? $this->get_snippet() : '') . '<!-- end Bablic Head -->';
+        return '<!-- start Bablic Head -->'.$this->get_alt_tags().$this->get_snippet($this->get_locale() == $this->get_original()) . '<!-- end Bablic Head -->';
     }
 
     public function bablic_top(){
         echo '<!-- start Bablic Head -->';
         $this->alt_tags();
-        if($this->get_locale() != $this->get_original()){
-            echo $this->get_snippet();
-        }
+        echo $this->get_snippet($this->get_locale() == $this->get_original());
         echo '<!-- end Bablic Head -->';
     }
 
