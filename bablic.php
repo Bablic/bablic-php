@@ -66,6 +66,7 @@ class BablicSDK {
 	private $bablic_base = 'https://www.bablic.com';
 	private $bablic_seo_base = 'http://seo.bablic.com';
 	private $_locale = '';
+    private $folders = array();
 
     function __construct($options) {
         if (empty($options['channel_id'])){
@@ -113,8 +114,44 @@ class BablicSDK {
         }
         if(isset($options['use_snippet_url']))
             $this->use_snippet_url = true;
+        if (!empty($options['folders'])) {
+            $this->folders = $options['folders'];
+        }
     }
 
+    private function getFolder($locale)
+    {
+        foreach ($this->folders as $folder => $l) {
+            if ($l == $locale) {
+                return $folder;
+            }
+        }
+        $locale = substr($locale, 0, 2);
+        foreach ($this->folders as $folder => $l) {
+            if (substr($l, 0, 2) == $locale) {
+                return $folder;
+            }
+        }
+
+        return '';
+    }
+
+    private function getLocaleFromFolder($folderLocale, $locales)
+    {
+        foreach ($locales as $l) {
+            if ($l == $folderLocale) {
+                return $l;
+            }
+        }
+        $folderLocale = substr($folderLocale, 0, 2);
+        foreach ($locales as $l) {
+            if (substr($l, 0, 2) == $folderLocale) {
+                return $l;
+            }
+        }
+
+        return $folderLocale;
+    }
     private function save_data_to_store(){
         $this->store->set('meta', $this->meta);
         $this->store->set('access_token', $this->access_token);
@@ -302,11 +339,14 @@ class BablicSDK {
         $str = '';
         if(is_array($locale_keys)){
             foreach( $locale_keys as $alt){
-                if($alt != $locale)
-                    $str .= '<link rel="alternate" href="' . $this->get_link($alt,$url) . '" hreflang="'.$alt.'">';
+                if($alt != $locale) {
+                    $parts = explode('_', $alt);
+                    $iso = sizeof($parts) > 1 ? $parts[0].'-'.strtoupper($parts[1]) : $parts[0];
+                    array_push($res, array($this->get_link($alt, $url), $iso));
+                }
             }
             if($locale != $meta['original'])
-                $str .= '<link rel="alternate" href="' . $this->get_link($meta['original'],$url) . '" hreflang="'.$meta['original'].'">';
+                $str .= '<link rel="alternate" href="' . $this->get_link($meta['original'],$url) . '" hreflang="x-default">';
         }
         return $str;
     }
@@ -318,18 +358,21 @@ class BablicSDK {
         $url = $_SERVER['REQUEST_URI'];
         if(is_array($locale_keys)){
             foreach( $locale_keys as $alt){
-                if($alt != $locale)
-                    echo '<link rel="alternate" href="' . $this->get_link($alt,$url) . '" hreflang="'.$alt.'">';
+                if($alt != $locale) {
+                    $parts = explode('_', $alt);
+                    $iso = sizeof($parts) > 1 ? $parts[0].'-'.strtoupper($parts[1]) : $parts[0];
+                    echo '<link rel="alternate" href="' . $this->get_link($alt,$url) . '" hreflang="'.$iso.'">';
+                }
             }
             if($locale != $meta['original'])
-                echo '<link rel="alternate" href="' . $this->get_link($meta['original'],$url) . '" hreflang="'.$meta['original'].'">';
+                echo '<link rel="alternate" href="' . $this->get_link($meta['original'],$url) . '" hreflang="x-default">';
         }
     }
 
     private function get_all_headers() {
         $headers = array();
         foreach($_SERVER as $key => $value) {
-            if (substr($key, 0, 5) <> 'HTTP_') {
+            if (substr($key, 0, 5) != 'HTTP_') {
                 continue;
             }
             $header = str_replace(' ', '-', ucwords(str_replace('_', ' ', strtolower(substr($key, 5)))));
@@ -410,12 +453,22 @@ class BablicSDK {
                 $query = http_build_query($output);
                 return $scheme.$host.$port.$path.'?'.$query.$fragment;
             case 'subdir':
-                $locale_keys = $meta['localeKeys'];
-                $locale_regex = "(" . implode("|",$locale_keys) . ")";
-                if($this->subdir_base != "")
-                     $path = preg_replace('/^'.preg_quote($this->subdir_base,'/').'\//','/',$path);
-                $path =  preg_replace('/^'.$locale_regex.'\//','/',$path);
-                $prefix = $locale == $meta['original'] ? '' : '/' . $locale;
+                if ($this->subdir_base != '') {
+                    $path = preg_replace('/^'.preg_quote($this->subdir_base, '/').'\//', '/', $path);
+                }
+                $folder_keys = array_keys($this->folders);
+                $prefix = '';
+                if (sizeof($folder_keys) > 0) {
+                    $prefix = '/'.$this->getFolder($locale);
+                    $locale_keys = $folder_keys;
+                } else{
+                    $locale_keys = $meta['localeKeys'];
+                    if($locale != $meta['original'])
+                        $prefix = '/'.$locale;
+                }
+                $locale_regex = '('.implode('|', $locale_keys).')';
+                $path = preg_replace('/^\/?'.$locale_regex.'\//', '/', $path);
+
                 return $scheme.$host.$port.$this->subdir_base.$prefix.$path.$query.$fragment;
             case 'hash':
                 $fragment = '#locale_'.$locale;
@@ -448,6 +501,7 @@ class BablicSDK {
         $default = $meta['default'];
         $custom_urls = $meta['customUrls'];
         $locale_keys = $meta['localeKeys'];
+        array_push($locale_keys, $meta['original']);
         $locale_detection = $meta['localeDetection'];
 		if($this->subdir)
 			$locale_detection = 'subdir';
@@ -480,12 +534,24 @@ class BablicSDK {
                 return $default;
             case 'subdir':
                 $path = $parsed_url['path'];
-                preg_match("/^(?:".preg_quote($this->subdir_base,'/').")?(\/(\w\w(_\w\w)?))(?:\/|$)/", $path, $matches);
-                if ($matches) return $matches[2];
-                if ($from_cookie)
+                preg_match('/^(?:'.preg_quote($this->subdir_base, '/').")?(\/(\w\w(_\w\w)?))(?:\/|$)/", $path, $matches);
+                if ($matches) {
+                    if (!empty($this->folders[$matches[2]])) {
+                        $folder = $this->folders[$matches[2]];
+                        array_push($locale_keys, $meta['original']);
+
+                        return $this->getLocaleFromFolder($folder, $locale_keys);
+                    }
+
+                    return $matches[2];
+                }
+                if ($from_cookie) {
                     return $default;
-                if ($detected)
+                }
+                if ($detected) {
                     return $detected;
+                }
+
                 return $default;
             case 'custom':
                 foreach ($custom_urls as $key => $value) {
@@ -628,6 +694,7 @@ class BablicSDK {
 
     private function send_to_bablic($url, $html) {
         $bablic_url = $this->bablic_seo_base . "/api/engine/seo?site=$this->site_id&url=".urlencode($url).($this->subdir ? "&ld=subdir" : "").($this->subdir_base ? "&sdb=" .urlencode($this->subdir_base) : "");
+        $bablic_url .= '&folders='.urlencode(json_encode($this->folders));
         $curl = curl_init($bablic_url);
 		$length = strlen($html);
         curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 0);
