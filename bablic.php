@@ -54,9 +54,11 @@ class BablicSDK {
     private $subdir_base = '';
     private $url = '';
     private $nocache = false;
+    private $nourl = false;
     public $access_token = '';
     private $channel_id = '';
     private $version = '';
+    private $snippet = '';
     private $meta = '';
     public $trial_started = false;
 	private $_body = '';
@@ -480,7 +482,7 @@ class BablicSDK {
         return $meta['localeKeys'];
     }
 
-    private function get_locale_inner(){
+    private function get_locale_inner($is_bot){
         if(!empty($_SERVER['HTTP_BABLIC_LOCALE']))
             return $_SERVER['HTTP_BABLIC_LOCALE'];
 		if($this->meta == '')
@@ -490,12 +492,14 @@ class BablicSDK {
         $default = $meta['default'];
         $custom_urls = $meta['customUrls'];
         $locale_keys = $meta['localeKeys'];
+        if(!$locale_keys)
+            $locale_keys = array();
         array_push($locale_keys, $meta['original']);
         $locale_detection = $meta['localeDetection'];
 		if($this->subdir)
 			$locale_detection = 'subdir';
         $detected = '';
-        if($auto && !empty($locale_keys)){
+        if(!$is_bot && $auto && !empty($locale_keys)){
             $detected_lang = $this->detect_locale_from_header();
             $normalized_lang = strtolower(str_replace('-','_',$detected_lang));
             foreach ($locale_keys as &$value) {
@@ -509,7 +513,7 @@ class BablicSDK {
                 }
             }
         }
-        $from_cookie = $this->detect_locale_from_cookie($locale_keys);
+        $from_cookie = $is_bot ? false : $this->detect_locale_from_cookie($locale_keys);
         $url = $this->get_current_url();
         $parsed_url = parse_url($url);
         switch ($locale_detection) {
@@ -558,7 +562,7 @@ class BablicSDK {
     public function get_locale() {
         if($this->_locale != '')
             return $this->_locale;
-        $locale = $this->get_locale_inner();
+        $locale = $this->get_locale_inner(false);
         $this->_locale = $locale;
         return $locale;
     }
@@ -593,12 +597,17 @@ class BablicSDK {
             $this->url = $options['url'];
         else
             $this->url = $this->get_current_url();
+        if ($this->ignorable($this->url))
+            return;
         if (!empty($options['nocache']) && $options['nocache'] == true)
 			$this->nocache = true;
+        if (!empty($options['nourl']) && $options['nourl'] == true)
+			$this->nourl = true;
+
         if($this->meta){
            $meta = json_decode($this->meta, true);
            $default = $meta['default'];
-		   $locale = $this->get_locale();
+		   $locale = $this->get_locale_inner(true);
            if ($default == $locale)
 			   return;
            $this->get_html_for_url($this->url);
@@ -638,8 +647,8 @@ class BablicSDK {
 			$rcode = http_response_code();
 		else
 			$rcode = (isset($GLOBALS['http_response_code']) ? $GLOBALS['http_response_code'] : 200);
-        if ($rcode < 200 || $rcode >= 300) return false;
-        if ($this->ignorable($this->get_current_url())) return false;
+        if ($rcode < 200 || $rcode >= 300) return $buffer;
+        if ($this->ignorable($this->get_current_url())) return $buffer;
         foreach ($headers as &$value) {
             $html_found = 0;
             $contenttype_found = 0;
@@ -651,7 +660,7 @@ class BablicSDK {
                 break;
             }
         }
-        if (($html_found === false)&&($contenttype_found === 0)) return false;
+        if (($html_found === false)&&($contenttype_found === 0)) return $buffer;
         $html = ob_get_contents();
 
         $url = $this->url;
@@ -682,7 +691,8 @@ class BablicSDK {
 	}
 
     private function send_to_bablic($url, $html) {
-        $bablic_url = $this->bablic_seo_base . "/api/engine/seo?site=$this->site_id&url=".urlencode($url).($this->subdir ? "&ld=subdir" : "").($this->subdir_base ? "&sdb=" .urlencode($this->subdir_base) : "");
+        $nourl_param = $this->nourl ? "&nourl=1" : "";
+        $bablic_url = $this->bablic_seo_base . "/api/engine/seo?site=$this->site_id".$nourl_param."&url=".urlencode($url).($this->subdir ? "&ld=subdir" : "").($this->subdir_base ? "&sdb=" .urlencode($this->subdir_base) : "");
         $bablic_url .= '&folders='.urlencode(json_encode($this->folders));
         $curl = curl_init($bablic_url);
 		$length = strlen($html);
