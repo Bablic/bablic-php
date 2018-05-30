@@ -21,6 +21,7 @@ $bablic = new BablicSDK(
 # run the SEO middlware
 $bablic->handle_request(
     /*array(
+        'nourl' => false, // optional
         'debug' => false, //optional
         'nocache' => false, //optional
         'url' => 'http://some.url.com' //optional
@@ -46,6 +47,8 @@ And that's it!
 #Options
 
 site_id - required, your Bablic site id.
+
+nourl - Bablic will not rewrite URL links and will leave them as they are in the original language. Only use this option if you have rewriting the HTML links in your server.
 
 debug - optional, when true Bablic SDK will handle ALL web requests
 
