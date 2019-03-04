@@ -65,6 +65,7 @@ class BablicSDK {
 	private $pos = 0;
 	private $timestamp = 0;
 	private $use_snippet_url = false;
+	private $dont_add_sub_dir_base = false;
 	private $bablic_base = 'https://www.bablic.com';
 	private $bablic_seo_base = 'http://seo.bablic.com';
 	private $_locale = '';
@@ -119,6 +120,9 @@ class BablicSDK {
         if (!empty($options['folders'])) {
             $this->folders = $options['folders'];
         }
+        if(isset($options['dont_add_sub_dir_base']))
+            $this->dont_add_sub_dir_base = true;
+	
     }
 
     private function getFolder($locale)
@@ -694,6 +698,8 @@ class BablicSDK {
         $nourl_param = $this->nourl ? "&nourl=1" : "";
         $bablic_url = $this->bablic_seo_base . "/api/engine/seo?site=$this->site_id".$nourl_param."&url=".urlencode($url).($this->subdir ? "&ld=subdir" : "").($this->subdir_base ? "&sdb=" .urlencode($this->subdir_base) : "");
         $bablic_url .= '&folders='.urlencode(json_encode($this->folders));
+	if ($this->dont_add_sub_dir_base)
+		$bablic_url .= '&dasdb=1';
         $curl = curl_init($bablic_url);
 		$length = strlen($html);
         curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 0);
