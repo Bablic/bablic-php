@@ -445,7 +445,7 @@ class BablicSDK {
                 return $scheme.$host.$port.$path.'?'.$query.$fragment;
             case 'subdir':
                 if ($this->subdir_base != '') {
-                    $path = preg_replace('/^'.preg_quote($this->subdir_base, '/').'\//', '/', $path);
+                    $path = preg_replace('/^(?:'.preg_quote($this->subdir_base, '/').')?\//', '/', $path);
                 }
                 $folder_keys = array_keys($this->folders);
                 $prefix = '';
