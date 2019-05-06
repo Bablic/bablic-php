@@ -750,8 +750,8 @@ class BablicSDK {
 			$html_file = file_exists($filename);
 			if ($html_file) {
 				$file_modified = filemtime($filename);
-				$now = round(microtime(true) * 1000);
-				$validity = ($now - (2*24*60*60*1000) > $file_modified);
+				$now = time();
+				$validity = ($now - (2*24*60*60) > $file_modified);
 				if ($validity === false) return false;
 				readfile($filename);
 				return true;
